@@ -1,6 +1,6 @@
 export const EXPENSE_CATEGORIES = [
-  { icon: '🏦', label: '贷款' },
   { icon: '🧧', label: '日常' },
+  { icon: '🏦', label: '贷款' },
 ];
 
 export const INCOME_CATEGORIES = [

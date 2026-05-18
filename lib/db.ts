@@ -177,3 +177,8 @@ export async function importData(data: { records: Record[]; budgets: Budget[] })
     );
   }
 }
+
+export async function deleteAllRecords(): Promise<void> {
+  const database = await getDb();
+  await database.runAsync(`DELETE FROM records`);
+}

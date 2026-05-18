@@ -28,14 +28,14 @@ export function AddRecordModal({ visible, onClose }: Props) {
   const { state, addRecord } = useRecordStore();
   const [recType, setRecType] = useState<'expense' | 'income'>('expense');
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState('日常');
   const [remark, setRemark] = useState('');
   const [saving, setSaving] = useState(false);
 
   const resetForm = () => {
     setRecType('expense');
     setAmount('');
-    setCategory('');
+    setCategory('日常');
     setRemark('');
   };
 
@@ -123,7 +123,7 @@ export function AddRecordModal({ visible, onClose }: Props) {
               style={[styles.segmentBtn, recType === 'expense' && styles.segmentActive]}
               onPress={() => {
                 setRecType('expense');
-                setCategory('');
+                setCategory('日常');
               }}
             >
               <Text style={[styles.segmentText, recType === 'expense' && styles.segmentTextActive]}>
@@ -134,7 +134,7 @@ export function AddRecordModal({ visible, onClose }: Props) {
               style={[styles.segmentBtn, recType === 'income' && styles.segmentActive]}
               onPress={() => {
                 setRecType('income');
-                setCategory('');
+                setCategory('工资');
               }}
             >
               <Text style={[styles.segmentText, recType === 'income' && styles.segmentTextActive]}>

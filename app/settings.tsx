@@ -14,7 +14,7 @@ import { exportAllData } from '../lib/db';
 import type { CategoryBudgets } from '../types';
 
 export default function SettingsScreen() {
-  const { state, loadData, setBudget } = useRecordStore();
+  const { state, loadData, setBudget, clearAllRecords } = useRecordStore();
   const [isOpen, setIsOpen] = useState(false);
   const [categoryBudgetInputs, setCategoryBudgetInputs] = useState<CategoryBudgets>({});
 
@@ -77,6 +77,26 @@ export default function SettingsScreen() {
       '导入数据',
       '请将之前导出的 JSON 文件放到「文件」App 的「我的 iPhone」/「Expo」目录下，文件名为 budget_backup_*.json，然后重新打开应用自动导入。\n\n或者你可以手动复制 JSON 内容。',
       [{ text: '知道了' }]
+    );
+  };
+
+  const handleClearRecords = () => {
+    Alert.alert(
+      '清空记录',
+      '确定要清空所有记录吗？此操作不可恢复，预算数据将保留。',
+      [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '清空',
+          style: 'destructive',
+          onPress: async () => {
+            triggerHaptic('warning');
+            await clearAllRecords();
+            await loadData();
+            Alert.alert('已清空', '所有记录已删除，预算已保留。');
+          },
+        },
+      ]
     );
   };
 
@@ -144,6 +164,14 @@ export default function SettingsScreen() {
             <View>
               <Text style={styles.actionLabel}>导入数据</Text>
               <Text style={styles.actionDesc}>从 JSON 文件恢复账目和预算</Text>
+            </View>
+            <Text style={styles.actionArrow}>›</Text>
+          </TouchableOpacity>
+          <View style={styles.divider} />
+          <TouchableOpacity style={styles.actionRow} onPress={handleClearRecords} activeOpacity={0.7}>
+            <View>
+              <Text style={[styles.actionLabel, { color: theme.colors.red }]}>清空记录</Text>
+              <Text style={styles.actionDesc}>删除所有账目，保留预算</Text>
             </View>
             <Text style={styles.actionArrow}>›</Text>
           </TouchableOpacity>

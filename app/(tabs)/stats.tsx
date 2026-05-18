@@ -54,8 +54,12 @@ export default function StatsScreen() {
 
         <Text style={styles.historyTitle}>月历史记录</Text>
 
-        {state.allMonthlyHistory
-          .map((item) => {
+        {state.allMonthlyHistory.length === 0 ? (
+          <Card style={styles.emptyCard}>
+            <Text style={styles.emptyText}>暂无历史记录</Text>
+          </Card>
+        ) : (
+          state.allMonthlyHistory.map((item) => {
             const monthBalance = item.total_income - item.total_expense;
             return (
               <Card key={item.month} style={styles.monthCard}>
@@ -87,7 +91,8 @@ export default function StatsScreen() {
                 </View>
               </Card>
             );
-          })}
+          })
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -131,6 +136,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   monthCard: { marginBottom: 12, paddingVertical: 14, paddingHorizontal: 18 },
+  emptyCard: { marginBottom: 12, paddingVertical: 32, paddingHorizontal: 18, alignItems: 'center' },
+  emptyText: { fontSize: 14, color: theme.colors.muted, fontWeight: '600' },
   monthCardLabel: { fontSize: 16, fontWeight: '900', color: theme.colors.ink, marginBottom: 10 },
   monthCardStats: { flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
   monthCardStat: { alignItems: 'center' },

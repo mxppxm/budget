@@ -7,6 +7,7 @@ import {
   getCategoryRanking,
   insertRecord,
   deleteRecord,
+  deleteAllRecords,
   getBudget,
   upsertBudget,
 } from '../lib/db';
@@ -28,6 +29,7 @@ type Action =
   | { type: 'LOAD_RECORDS'; records: LedgerRecord[] }
   | { type: 'ADD_RECORD'; record: LedgerRecord }
   | { type: 'DELETE_RECORD'; id: string }
+  | { type: 'CLEAR_ALL_RECORDS' }
   | { type: 'SET_MONTH'; month: string }
   | { type: 'SET_BUDGET'; budget: Budget | null }
   | { type: 'LOAD_STATS'; summary: MonthlySummary; ranking: CategoryRanking[] }
@@ -43,6 +45,8 @@ function reducer(state: State, action: Action): State {
       return { ...state, records: [action.record, ...state.records] };
     case 'DELETE_RECORD':
       return { ...state, records: state.records.filter((r) => r.id !== action.id) };
+    case 'CLEAR_ALL_RECORDS':
+      return { ...state, records: [], monthlySummary: { total_expense: 0, total_income: 0 }, categoryRanking: [], allMonthlyHistory: [] };
     case 'SET_MONTH':
       return { ...state, currentMonth: action.month };
     case 'SET_BUDGET':
@@ -66,6 +70,7 @@ interface RecordStoreContextValue {
   loadAllMonthlyHistory: () => Promise<void>;
   addRecord: (record: Omit<LedgerRecord, 'id' | 'created_at'>) => Promise<void>;
   removeRecord: (id: string) => Promise<void>;
+  clearAllRecords: () => Promise<void>;
   setMonth: (month: string) => void;
   setBudget: (budget: Budget) => Promise<void>;
   markWarningSeen: () => void;
@@ -117,11 +122,13 @@ export function RecordStoreProvider({ children }: { children: React.ReactNode })
       await insertRecord(newRecord);
       dispatch({ type: 'ADD_RECORD', record: newRecord });
       // Reload stats
-      const [summary, ranking] = await Promise.all([
+      const [summary, ranking, history] = await Promise.all([
         getMonthlySummary(state.currentMonth),
         getCategoryRanking(state.currentMonth),
+        getAllMonthlySummaries(),
       ]);
       dispatch({ type: 'LOAD_STATS', summary, ranking });
+      dispatch({ type: 'SET_ALL_MONTHLY_HISTORY', history });
     },
     [state.currentMonth]
   );
@@ -130,14 +137,21 @@ export function RecordStoreProvider({ children }: { children: React.ReactNode })
     async (id: string) => {
       await deleteRecord(id);
       dispatch({ type: 'DELETE_RECORD', id });
-      const [summary, ranking] = await Promise.all([
+      const [summary, ranking, history] = await Promise.all([
         getMonthlySummary(state.currentMonth),
         getCategoryRanking(state.currentMonth),
+        getAllMonthlySummaries(),
       ]);
       dispatch({ type: 'LOAD_STATS', summary, ranking });
+      dispatch({ type: 'SET_ALL_MONTHLY_HISTORY', history });
     },
     [state.currentMonth]
   );
+
+  const clearAllRecords = useCallback(async () => {
+    await deleteAllRecords();
+    dispatch({ type: 'CLEAR_ALL_RECORDS' });
+  }, []);
 
   const setMonth = useCallback((month: string) => {
     dispatch({ type: 'SET_MONTH', month });
@@ -187,7 +201,7 @@ export function RecordStoreProvider({ children }: { children: React.ReactNode })
 
   return (
     <RecordStoreContext.Provider
-      value={{ state, loadData, loadAllMonthlyHistory, addRecord, removeRecord, setMonth, setBudget, markWarningSeen, groupRecordsByDay }}
+      value={{ state, loadData, loadAllMonthlyHistory, addRecord, removeRecord, clearAllRecords, setMonth, setBudget, markWarningSeen, groupRecordsByDay }}
     >
       {children}
     </RecordStoreContext.Provider>
