@@ -1,0 +1,31 @@
+export const theme = {
+  colors: {
+    paper: '#FFF6EF',
+    card: '#FFFFFF',
+    ink: '#3A1718',
+    text: '#4B2925',
+    muted: '#8B6F65',
+    faint: '#BCA89F',
+    line: '#EBD7CB',
+    deepGreen: '#B1162B',
+    green: '#1F7A4D',
+    greenSoft: '#E4F3E9',
+    amber: '#D5A13D',
+    amberSoft: '#FFF0C8',
+    red: '#B1162B',
+    redSoft: '#F8D9DD',
+    blueSoft: '#F7E9DC',
+    key: '#F4E4D6',
+    shadow: '#6A1D1F',
+  },
+  radius: {
+    sm: 10,
+    md: 14,
+    lg: 18,
+    xl: 24,
+    pill: 999,
+  },
+  space: {
+    page: 18,
+  },
+};
