@@ -36,7 +36,7 @@ export function getDateString(date: Date = new Date()): string {
 
 export function getMonthLabel(monthStr: string): string {
   const [year, month] = monthStr.split('-');
-  return `${parseInt(year)}年${parseInt(month)}月`;
+  return `${parseInt(year) % 100}年${parseInt(month)}月`;
 }
 
 export function getPrevMonth(monthStr: string): string {

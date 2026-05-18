@@ -10,7 +10,6 @@ export interface Record {
 
 export interface Budget {
   month: string; // YYYY-MM
-  total_budget: number;
   is_open: number; // 0 or 1
   category_budgets: CategoryBudgets;
 }

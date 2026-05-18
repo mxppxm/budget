@@ -3,6 +3,7 @@ import type { Record as LedgerRecord, Budget, MonthlySummary, CategoryRanking, D
 import {
   getRecordsByMonth,
   getMonthlySummary,
+  getAllMonthlySummaries,
   getCategoryRanking,
   insertRecord,
   deleteRecord,
@@ -20,6 +21,7 @@ interface State {
   categoryRanking: CategoryRanking[];
   hasSeenWarning: boolean;
   isLoading: boolean;
+  allMonthlyHistory: { month: string; total_expense: number; total_income: number }[];
 }
 
 type Action =
@@ -30,7 +32,8 @@ type Action =
   | { type: 'SET_BUDGET'; budget: Budget | null }
   | { type: 'LOAD_STATS'; summary: MonthlySummary; ranking: CategoryRanking[] }
   | { type: 'SET_WARNING_SEEN' }
-  | { type: 'SET_LOADING'; isLoading: boolean };
+  | { type: 'SET_LOADING'; isLoading: boolean }
+  | { type: 'SET_ALL_MONTHLY_HISTORY'; history: { month: string; total_expense: number; total_income: number }[] };
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
@@ -50,6 +53,8 @@ function reducer(state: State, action: Action): State {
       return { ...state, hasSeenWarning: true };
     case 'SET_LOADING':
       return { ...state, isLoading: action.isLoading };
+    case 'SET_ALL_MONTHLY_HISTORY':
+      return { ...state, allMonthlyHistory: action.history };
     default:
       return state;
   }
@@ -58,6 +63,7 @@ function reducer(state: State, action: Action): State {
 interface RecordStoreContextValue {
   state: State;
   loadData: (month?: string) => Promise<void>;
+  loadAllMonthlyHistory: () => Promise<void>;
   addRecord: (record: Omit<LedgerRecord, 'id' | 'created_at'>) => Promise<void>;
   removeRecord: (id: string) => Promise<void>;
   setMonth: (month: string) => void;
@@ -77,7 +83,13 @@ export function RecordStoreProvider({ children }: { children: React.ReactNode })
     categoryRanking: [],
     hasSeenWarning: false,
     isLoading: true,
+    allMonthlyHistory: [],
   });
+
+  const loadAllMonthlyHistory = useCallback(async () => {
+    const history = await getAllMonthlySummaries();
+    dispatch({ type: 'SET_ALL_MONTHLY_HISTORY', history });
+  }, []);
 
   const loadData = useCallback(async (month?: string) => {
     dispatch({ type: 'SET_LOADING', isLoading: true });
@@ -137,10 +149,8 @@ export function RecordStoreProvider({ children }: { children: React.ReactNode })
       const value = Number(budget.category_budgets?.[category.label]) || 0;
       if (value > 0) categoryBudgets[category.label] = value;
     }
-    const totalBudget = Object.values(categoryBudgets).reduce((sum, value) => sum + (Number(value) || 0), 0);
     const normalizedBudget = {
       ...budget,
-      total_budget: totalBudget,
       category_budgets: categoryBudgets,
     };
     await upsertBudget(normalizedBudget);
@@ -177,7 +187,7 @@ export function RecordStoreProvider({ children }: { children: React.ReactNode })
 
   return (
     <RecordStoreContext.Provider
-      value={{ state, loadData, addRecord, removeRecord, setMonth, setBudget, markWarningSeen, groupRecordsByDay }}
+      value={{ state, loadData, loadAllMonthlyHistory, addRecord, removeRecord, setMonth, setBudget, markWarningSeen, groupRecordsByDay }}
     >
       {children}
     </RecordStoreContext.Provider>

@@ -4,7 +4,6 @@ import { EXPENSE_CATEGORIES } from '../constants/categories';
 
 interface BudgetRow {
   month: string;
-  total_budget: number;
   is_open: number;
   category_budgets: string | null;
 }
@@ -49,6 +48,20 @@ export async function getRecordsByMonth(month: string): Promise<Record[]> {
   const rows = await database.getAllAsync<Record>(
     `SELECT * FROM records WHERE date LIKE ? ORDER BY date DESC, created_at DESC`,
     [`${month}%`]
+  );
+  return rows;
+}
+
+export async function getAllMonthlySummaries(): Promise<{ month: string; total_expense: number; total_income: number }[]> {
+  const database = await getDb();
+  const rows = await database.getAllAsync<{ month: string; total_expense: number; total_income: number }>(
+    `SELECT
+      substr(date, 1, 7) as month,
+      COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) as total_expense,
+      COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) as total_income
+    FROM records
+    GROUP BY substr(date, 1, 7)
+    ORDER BY month DESC`
   );
   return rows;
 }
@@ -107,7 +120,6 @@ export async function getBudget(month: string): Promise<Budget | null> {
   const categoryBudgets = parseCategoryBudgets(row.category_budgets);
   return {
     month: row.month,
-    total_budget: Object.values(categoryBudgets).reduce((sum, value) => sum + value, 0),
     is_open: row.is_open,
     category_budgets: categoryBudgets,
   };
@@ -116,8 +128,8 @@ export async function getBudget(month: string): Promise<Budget | null> {
 export async function upsertBudget(budget: Budget): Promise<void> {
   const database = await getDb();
   await database.runAsync(
-    `INSERT OR REPLACE INTO budgets (month, total_budget, is_open, category_budgets) VALUES (?, ?, ?, ?)`,
-    [budget.month, budget.total_budget, budget.is_open, JSON.stringify(budget.category_budgets ?? {})]
+    `INSERT OR REPLACE INTO budgets (month, is_open, category_budgets) VALUES (?, ?, ?)`,
+    [budget.month, budget.is_open, JSON.stringify(budget.category_budgets ?? {})]
   );
 }
 
@@ -135,5 +147,33 @@ function parseCategoryBudgets(value: string | null): CategoryBudgets {
     return budgets;
   } catch {
     return {};
+  }
+}
+
+export async function exportAllData(): Promise<{ records: Record[]; budgets: Budget[] }> {
+  const database = await getDb();
+  const records = await database.getAllAsync<Record>(`SELECT * FROM records ORDER BY date DESC, created_at DESC`);
+  const budgetRows = await database.getAllAsync<BudgetRow>(`SELECT * FROM budgets`);
+  const budgets: Budget[] = budgetRows.map((row) => ({
+    month: row.month,
+    is_open: row.is_open,
+    category_budgets: parseCategoryBudgets(row.category_budgets),
+  }));
+  return { records, budgets };
+}
+
+export async function importData(data: { records: Record[]; budgets: Budget[] }): Promise<void> {
+  const database = await getDb();
+  for (const record of data.records) {
+    await database.runAsync(
+      `INSERT OR REPLACE INTO records (id, amount, type, category, date, remark, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [record.id, record.amount, record.type, record.category, record.date, record.remark ?? null, record.created_at]
+    );
+  }
+  for (const budget of data.budgets) {
+    await database.runAsync(
+      `INSERT OR REPLACE INTO budgets (month, is_open, category_budgets) VALUES (?, ?, ?)`,
+      [budget.month, budget.is_open, JSON.stringify(budget.category_budgets ?? {})]
+    );
   }
 }

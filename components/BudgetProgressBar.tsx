@@ -22,7 +22,6 @@ const STATUS_LABELS: Record<BudgetStatus, string> = {
 
 interface BudgetProgressBarProps {
   totalExpense: number;
-  totalBudget: number;
   isOpen: boolean;
   categoryBudgets?: CategoryBudgets;
   categoryRanking?: CategoryRanking[];
@@ -30,11 +29,11 @@ interface BudgetProgressBarProps {
 
 export function BudgetProgressBar({
   totalExpense,
-  totalBudget,
   isOpen,
   categoryBudgets = {},
   categoryRanking = [],
 }: BudgetProgressBarProps) {
+  const totalBudget = Object.values(categoryBudgets).reduce((sum, val) => sum + val, 0);
   const status = getBudgetStatus(totalExpense, totalBudget, isOpen);
   const color = STATUS_COLORS[status];
   const ratio = isOpen && totalBudget > 0 ? Math.min(totalExpense / totalBudget, 1.5) : 0;

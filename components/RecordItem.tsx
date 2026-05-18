@@ -1,5 +1,5 @@
-import React, { useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated, PanResponder } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Pressable } from 'react-native';
 import type { Record } from '../types';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../constants/categories';
 import { theme } from '../constants/theme';
@@ -17,50 +17,52 @@ function getCategoryIcon(category: string, type: 'expense' | 'income'): string {
 export function RecordItem({ record, onDelete }: RecordItemProps) {
   const isExpense = record.type === 'expense';
   const icon = getCategoryIcon(record.category, record.type);
-  const translateX = useRef(new Animated.Value(0)).current;
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 8 && Math.abs(gesture.dy) < 10,
-      onPanResponderMove: (_, gesture) => {
-        if (gesture.dx < 0) {
-          translateX.setValue(Math.max(gesture.dx, -82));
-        }
-      },
-      onPanResponderRelease: (_, gesture) => {
-        Animated.spring(translateX, {
-          toValue: gesture.dx < -42 ? -74 : 0,
-          useNativeDriver: true,
-          friction: 8,
-          tension: 80,
-        }).start();
-      },
-    })
-  ).current;
+  const [showDelete, setShowDelete] = useState(false);
+
+  const handleLongPress = () => {
+    setShowDelete(true);
+  };
+
+  const handlePress = () => {
+    if (showDelete) {
+      setShowDelete(false);
+    }
+  };
+
+  const handleDelete = () => {
+    setShowDelete(false);
+    onDelete(record.id);
+  };
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.deleteBtn} onPress={() => onDelete(record.id)}>
-        <Text style={styles.deleteText}>删除</Text>
-      </TouchableOpacity>
-      <Animated.View
-        style={[styles.card, { transform: [{ translateX }] }]}
-        {...panResponder.panHandlers}
+      <Pressable
+        style={styles.touchable}
+        onLongPress={handleLongPress}
+        onPress={handlePress}
       >
-        <View style={[styles.iconWrap, isExpense ? styles.expenseIconWrap : styles.incomeIconWrap]}>
-          <Text style={styles.icon}>{icon}</Text>
+        <View style={styles.card}>
+          <View style={[styles.iconWrap, isExpense ? styles.expenseIconWrap : styles.incomeIconWrap]}>
+            <Text style={styles.icon}>{icon}</Text>
+          </View>
+          <View style={styles.info}>
+            <Text style={styles.category}>{record.category}</Text>
+            {record.remark ? (
+              <Text style={styles.remark} numberOfLines={1}>{record.remark}</Text>
+            ) : (
+              <Text style={styles.remark} numberOfLines={1}>{record.date}</Text>
+            )}
+          </View>
+          <Text style={[styles.amount, isExpense ? styles.expenseAmount : styles.incomeAmount]}>
+            {isExpense ? '-' : '+'}¥{record.amount.toFixed(2)}
+          </Text>
         </View>
-        <View style={styles.info}>
-          <Text style={styles.category}>{record.category}</Text>
-          {record.remark ? (
-            <Text style={styles.remark} numberOfLines={1}>{record.remark}</Text>
-          ) : (
-            <Text style={styles.remark} numberOfLines={1}>{record.date}</Text>
-          )}
-        </View>
-        <Text style={[styles.amount, isExpense ? styles.expenseAmount : styles.incomeAmount]}>
-          {isExpense ? '-' : '+'}¥{record.amount.toFixed(2)}
-        </Text>
-      </Animated.View>
+      </Pressable>
+      {showDelete && (
+        <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
+          <Text style={styles.deleteText}>删除</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -69,9 +71,11 @@ const styles = StyleSheet.create({
   container: {
     marginHorizontal: 18,
     marginVertical: 4,
-    borderRadius: theme.radius.lg,
-    overflow: 'hidden',
-    backgroundColor: theme.colors.red,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  touchable: {
+    flex: 1,
   },
   card: {
     flexDirection: 'row',
@@ -100,6 +104,13 @@ const styles = StyleSheet.create({
   amount: { fontSize: 15, fontWeight: '900' },
   expenseAmount: { color: theme.colors.ink },
   incomeAmount: { color: theme.colors.green },
-  deleteBtn: { position: 'absolute', right: 0, top: 0, bottom: 0, width: 74, justifyContent: 'center', alignItems: 'center' },
+  deleteBtn: {
+    position: 'absolute',
+    right: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: theme.colors.red,
+    borderRadius: theme.radius.md,
+  },
   deleteText: { color: theme.colors.card, fontSize: 14, fontWeight: '900' },
 });
